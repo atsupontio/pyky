@@ -33,7 +33,22 @@ def modq_mul_mont(a, b):
     :return: a*b reduced (short)
     """
     return montgomery_reduce(a * b)
+def Block2 (start,k,l,j,r):
+    while start < 256:
+        zeta = NTT_ZETAS[k]
+        k = k + 1
+        j = start
+        r, j, start = Block1(r, j, start, l, zeta)
+        start = j + l
+    return start, r, j, k
 
+def Block1(r, j, start, l, zeta):
+    while j < start + l:
+        t = modq_mul_mont(zeta, r[j + l])
+        r[j + l] = cast_to_short(r[j] - t)
+        r[j] = cast_to_short(r[j] + t)
+        j += 1
+    return r, j, start
 
 def ntt(r):
     """
@@ -43,26 +58,17 @@ def ntt(r):
     :param r:
     :return:
     """
-    import pickle
+    # import pickle
 
-    with open("sample.pickle", mode="wb") as f:
-        pickle.dump(r, f)
+    # with open("sample.pickle", mode="wb") as f:
+    #     pickle.dump(r, f)
 
     j = 0
     k = 1
     l = 128
     while l >= 2:
         start = 0
-        while start < 256:
-            zeta = NTT_ZETAS[k]
-            k = k + 1
-            j = start
-            while j < start + l:
-                t = modq_mul_mont(zeta, r[j + l])
-                r[j + l] = cast_to_short(r[j] - t)
-                r[j] = cast_to_short(r[j] + t)
-                j += 1
-            start = j + l
+        start, r, j, k = Block2 (start,k,l,j,r)
         l >>= 1
     return r
 
